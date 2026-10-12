@@ -1,0 +1,119 @@
+{
+  "//": "Zoho People attendance, switched off for now (ATTENDANCE in extension.js). To switch it back on: set ATTENDANCE to true, and put these back into package.json: the commands at the end of contributes.commands, the settings at the end of contributes.configuration.properties.",
+  "commands": [
+    {
+      "command": "ajwain.punch",
+      "title": "Attendance (Zoho People)…",
+      "category": "Ajwain"
+    },
+    {
+      "command": "ajwain.zohoConnect",
+      "title": "Connect Zoho People",
+      "category": "Ajwain"
+    },
+    {
+      "command": "ajwain.zohoDisconnect",
+      "title": "Disconnect Zoho People",
+      "category": "Ajwain"
+    }
+  ],
+  "properties": {
+    "ajwain.zoho.region": {
+      "type": "string",
+      "default": "in",
+      "enum": [
+        "in",
+        "com",
+        "eu",
+        "uk",
+        "com.au",
+        "jp",
+        "ca",
+        "sa",
+        "com.cn"
+      ],
+      "enumDescriptions": [
+        "India (zoho.in)",
+        "United States (zoho.com)",
+        "Europe (zoho.eu)",
+        "United Kingdom (zoho.uk)",
+        "Australia (zoho.com.au)",
+        "Japan (zoho.jp)",
+        "Canada (zohocloud.ca)",
+        "Saudi Arabia (zoho.sa)",
+        "China (zoho.com.cn)"
+      ],
+      "markdownDescription": "Your Zoho data centre: the one in the address you open Zoho People at. **Ajwain: Connect Zoho People** sets it."
+    },
+    "ajwain.zoho.email": {
+      "type": "string",
+      "default": "",
+      "markdownDescription": "Your email in Zoho People: the punches are recorded for this employee."
+    },
+    "ajwain.attendance.punchIn": {
+      "type": "string",
+      "enum": [
+        "ask",
+        "auto",
+        "off"
+      ],
+      "enumDescriptions": [
+        "When you open VS Code (or come back to it) on a workday and aren't punched in yet, a pop-up asks whether to punch in. Once a day, from 3 hours before the in time.",
+        "Punch in at `#ajwain.attendance.in#`. If VS Code starts later, at the real time.",
+        "Only when you punch in yourself."
+      ],
+      "default": "ask",
+      "markdownDescription": "How you're punched in to Zoho People on `#ajwain.attendance.days#`."
+    },
+    "ajwain.attendance.punchOut": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "ask",
+        "off"
+      ],
+      "enumDescriptions": [
+        "Punch out at `#ajwain.attendance.out#`, timed then even if VS Code notices later that evening.",
+        "From `#ajwain.attendance.out#`, a pop-up asks whether to punch out. Once a day.",
+        "Only when you punch out yourself."
+      ],
+      "default": "auto",
+      "markdownDescription": "How you're punched out of Zoho People."
+    },
+    "ajwain.attendance.in": {
+      "type": "string",
+      "pattern": "^([01]?\\d|2[0-3]):[0-5]\\d$",
+      "default": "09:00",
+      "markdownDescription": "When to punch in (24-hour `HH:MM`)."
+    },
+    "ajwain.attendance.out": {
+      "type": "string",
+      "pattern": "^([01]?\\d|2[0-3]):[0-5]\\d$",
+      "default": "18:00",
+      "markdownDescription": "When to punch out (24-hour `HH:MM`)."
+    },
+    "ajwain.attendance.days": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat",
+          "sun"
+        ]
+      },
+      "default": [
+        "mon",
+        "tue",
+        "wed",
+        "thu",
+        "fri"
+      ],
+      "markdownDescription": "The days Ajwain punches you in automatically."
+    }
+  }
+}

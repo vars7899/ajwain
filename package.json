@@ -1,0 +1,699 @@
+{
+  "name": "ajwain",
+  "displayName": "Ajwain",
+  "description": "Project management in your editor: boards, sprints, tickets, timers, your day at a glance, and a slot machine for picking what's next.",
+  "version": "0.13.2",
+  "publisher": "ajwain",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vars7899/ajwain.git"
+  },
+  "homepage": "https://github.com/vars7899/ajwain#readme",
+  "bugs": {
+    "url": "https://github.com/vars7899/ajwain/issues"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./extension.js",
+  "bin": {
+    "ajwain": "./cli.mjs"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "package": "npx --yes @vscode/vsce package --no-rewrite-relative-links",
+    "dev": "node test/mock-api.mjs"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ajwain",
+          "title": "Ajwain",
+          "icon": "media/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "ajwain": [
+        {
+          "type": "webview",
+          "id": "ajwain.home",
+          "name": "Home"
+        },
+        {
+          "id": "ajwain.issues",
+          "name": "Issue tree",
+          "visibility": "collapsed"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "ajwain.issues",
+        "contents": "Sign in to see your tickets.\n[Sign in](command:ajwain.signIn)",
+        "when": "!ajwain.signedIn"
+      },
+      {
+        "view": "ajwain.issues",
+        "contents": "[Open board](command:ajwain.openBoard)",
+        "when": "ajwain.signedIn"
+      }
+    ],
+    "commands": [
+      {
+        "command": "ajwain.openBoard",
+        "title": "Open board",
+        "category": "Ajwain",
+        "icon": "$(layout)"
+      },
+      {
+        "command": "ajwain.signIn",
+        "title": "Sign in",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.signOut",
+        "title": "Sign out",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.setServer",
+        "title": "Change server…",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.pickWorkspace",
+        "title": "Switch workspace",
+        "category": "Ajwain",
+        "icon": "$(organization)"
+      },
+      {
+        "command": "ajwain.refresh",
+        "title": "Refresh",
+        "category": "Ajwain",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ajwain.create",
+        "title": "Create ticket",
+        "category": "Ajwain",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ajwain.openIssue",
+        "title": "Open ticket by key",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.edit",
+        "title": "Edit as Markdown",
+        "category": "Ajwain",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "ajwain.setStatus",
+        "title": "Change status",
+        "category": "Ajwain",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "ajwain.setField",
+        "title": "Edit field (type, priority, estimate, due date)",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.logTime",
+        "title": "Log time",
+        "category": "Ajwain",
+        "icon": "$(watch)"
+      },
+      {
+        "command": "ajwain.comment",
+        "title": "Add comment",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.assignMe",
+        "title": "Assign to me",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.startWork",
+        "title": "Start work (branch / worktree)",
+        "category": "Ajwain",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "ajwain.copyBranch",
+        "title": "Copy branch name",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.openInBrowser",
+        "title": "Open in browser",
+        "category": "Ajwain",
+        "icon": "$(link-external)"
+      },
+      {
+        "command": "ajwain.currentActions",
+        "title": "Actions for current branch's ticket",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.today",
+        "title": "Today: log time & wrap up",
+        "category": "Ajwain",
+        "icon": "$(calendar)"
+      },
+      {
+        "command": "ajwain.breakdown",
+        "title": "Break down into subtasks",
+        "category": "Ajwain",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "ajwain.addReminder",
+        "title": "Add reminder",
+        "category": "Ajwain",
+        "icon": "$(bell)"
+      },
+      {
+        "command": "ajwain.configureReminders",
+        "title": "Configure reminders",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.implementWithClaude",
+        "title": "Implement with Claude",
+        "category": "Ajwain",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "ajwain.timerToggle",
+        "title": "Start/stop timer",
+        "category": "Ajwain",
+        "icon": "$(watch)"
+      },
+      {
+        "command": "ajwain.timerStop",
+        "title": "Stop timer and log time",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.openPR",
+        "title": "Open pull request",
+        "category": "Ajwain",
+        "icon": "$(git-pull-request)"
+      },
+      {
+        "command": "ajwain.finish",
+        "title": "Finish ticket",
+        "category": "Ajwain",
+        "icon": "$(pass)"
+      },
+      {
+        "command": "ajwain.ticketFromCode",
+        "title": "Create ticket from code",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.standup",
+        "title": "Write standup",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.pickProject",
+        "title": "Switch project",
+        "category": "Ajwain",
+        "icon": "$(project)"
+      },
+      {
+        "command": "ajwain.takeBreak",
+        "title": "Take a stretch break",
+        "category": "Ajwain",
+        "icon": "$(person)"
+      },
+      {
+        "command": "ajwain.eyeBreak",
+        "title": "Take an eye break (20-20-20)",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.focus",
+        "title": "Start/stop a focus session (Pomodoro)",
+        "category": "Ajwain",
+        "icon": "$(target)"
+      },
+      {
+        "command": "ajwain.windDown",
+        "title": "Wind down for the day",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.wrapped",
+        "title": "My week, wrapped",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.luckyDip",
+        "title": "Lucky dip: pick my next ticket",
+        "category": "Ajwain"
+      },
+      {
+        "command": "ajwain.attachFiles",
+        "title": "Attach to ticket…",
+        "category": "Ajwain"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "ajwain.openBoard",
+          "when": "view == ajwain.home && ajwain.signedIn",
+          "group": "navigation@0"
+        },
+        {
+          "command": "ajwain.create",
+          "when": "view == ajwain.home && ajwain.signedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ajwain.refresh",
+          "when": "view == ajwain.home && ajwain.signedIn",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ajwain.pickWorkspace",
+          "when": "view == ajwain.home && ajwain.signedIn",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ajwain.addReminder",
+          "when": "view == ajwain.home && ajwain.signedIn"
+        },
+        {
+          "command": "ajwain.configureReminders",
+          "when": "view == ajwain.home && ajwain.signedIn"
+        },
+        {
+          "command": "ajwain.signOut",
+          "when": "view == ajwain.home && ajwain.signedIn"
+        },
+        {
+          "command": "ajwain.openBoard",
+          "when": "view == ajwain.issues && ajwain.signedIn",
+          "group": "navigation@0"
+        },
+        {
+          "command": "ajwain.today",
+          "when": "view == ajwain.issues && ajwain.signedIn",
+          "group": "navigation@0"
+        },
+        {
+          "command": "ajwain.create",
+          "when": "view == ajwain.issues && ajwain.signedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ajwain.refresh",
+          "when": "view == ajwain.issues && ajwain.signedIn",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ajwain.pickProject",
+          "when": "view == ajwain.issues && ajwain.signedIn",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ajwain.pickWorkspace",
+          "when": "view == ajwain.issues && ajwain.signedIn",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ajwain.signOut",
+          "when": "view == ajwain.issues && ajwain.signedIn"
+        },
+        {
+          "command": "ajwain.addReminder",
+          "when": "view == ajwain.issues && ajwain.signedIn"
+        },
+        {
+          "command": "ajwain.configureReminders",
+          "when": "view == ajwain.issues && ajwain.signedIn"
+        },
+        {
+          "command": "ajwain.setServer",
+          "when": "view == ajwain.home"
+        },
+        {
+          "command": "ajwain.setServer",
+          "when": "view == ajwain.issues"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ajwain.openBoard",
+          "when": "viewItem == issue",
+          "group": "0_open@1"
+        },
+        {
+          "command": "ajwain.setStatus",
+          "when": "viewItem == issue",
+          "group": "inline@1"
+        },
+        {
+          "command": "ajwain.logTime",
+          "when": "viewItem == issue",
+          "group": "inline@2"
+        },
+        {
+          "command": "ajwain.startWork",
+          "when": "viewItem == issue",
+          "group": "inline@3"
+        },
+        {
+          "command": "ajwain.edit",
+          "when": "viewItem == issue",
+          "group": "1_edit@1"
+        },
+        {
+          "command": "ajwain.setStatus",
+          "when": "viewItem == issue",
+          "group": "1_edit@2"
+        },
+        {
+          "command": "ajwain.setField",
+          "when": "viewItem == issue",
+          "group": "1_edit@3"
+        },
+        {
+          "command": "ajwain.logTime",
+          "when": "viewItem == issue",
+          "group": "1_edit@4"
+        },
+        {
+          "command": "ajwain.comment",
+          "when": "viewItem == issue",
+          "group": "1_edit@5"
+        },
+        {
+          "command": "ajwain.startWork",
+          "when": "viewItem == issue",
+          "group": "2_git@1"
+        },
+        {
+          "command": "ajwain.copyBranch",
+          "when": "viewItem == issue",
+          "group": "2_git@2"
+        },
+        {
+          "command": "ajwain.openInBrowser",
+          "when": "viewItem == issue",
+          "group": "3_open@1"
+        },
+        {
+          "command": "ajwain.breakdown",
+          "when": "viewItem == issue",
+          "group": "1_edit@0"
+        },
+        {
+          "command": "ajwain.implementWithClaude",
+          "when": "viewItem == issue",
+          "group": "2_git@3"
+        },
+        {
+          "command": "ajwain.timerToggle",
+          "when": "viewItem == issue",
+          "group": "2_git@4"
+        },
+        {
+          "command": "ajwain.openPR",
+          "when": "viewItem == issue",
+          "group": "2_git@5"
+        },
+        {
+          "command": "ajwain.finish",
+          "when": "viewItem == issue",
+          "group": "2_git@6"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "ajwain.ticketFromCode",
+          "when": "ajwain.signedIn && editorTextFocus",
+          "group": "9_ajwain@1"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "ajwain.openPR",
+          "when": "ajwain.signedIn && scmProvider == git",
+          "group": "navigation@9"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ajwain.ticketFromCode",
+          "when": "ajwain.signedIn && editorIsOpen"
+        },
+        {
+          "command": "ajwain.attachFiles",
+          "when": "ajwain.signedIn"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "ajwain.attachFiles",
+          "when": "ajwain.signedIn && !explorerResourceIsFolder",
+          "group": "9_ajwain@1"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "ajwain.attachFiles",
+          "when": "ajwain.signedIn && resourceScheme == file",
+          "group": "9_ajwain@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Ajwain",
+      "properties": {
+        "ajwain.startWorkIn": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "branch",
+            "worktree"
+          ],
+          "enumDescriptions": [
+            "Ask each time",
+            "Check out the ticket's branch in this window",
+            "Create a sibling worktree and open it in a new window"
+          ],
+          "default": "ask",
+          "description": "Where \"Start work\" puts you."
+        },
+        "ajwain.reminders.afterCommit": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "After you commit, offer to log time, update status or comment on the branch's ticket, or to create or link one if the branch has none."
+        },
+        "ajwain.reminders.schedule": {
+          "type": "array",
+          "markdownDescription": "Daily reminders. `action`: `today` (log time from commits, ticket untracked work), `standup` (yesterday's commits and today's plan, ready to paste), `shutdown` (wind down), `wrapped` (the week in review), `create`, `logTime`, `board` or `message`. `days` defaults to weekdays. Use **Ajwain: Add reminder** to add one.",
+          "default": [
+            {
+              "time": "10:00",
+              "action": "standup",
+              "message": "Standup: yesterday, today, blockers"
+            },
+            {
+              "time": "16:00",
+              "action": "today",
+              "message": "Wrap up: log today's time and ticket any untracked work"
+            },
+            {
+              "time": "18:00",
+              "action": "shutdown",
+              "message": "Wind down: log today's time and pick tomorrow's first ticket"
+            },
+            {
+              "time": "16:30",
+              "action": "wrapped",
+              "message": "Your week, wrapped",
+              "days": [
+                "fri"
+              ]
+            }
+          ],
+          "items": {
+            "type": "object",
+            "required": [
+              "time",
+              "action"
+            ],
+            "properties": {
+              "time": {
+                "type": "string",
+                "pattern": "^([01]?\\d|2[0-3]):[0-5]\\d$",
+                "description": "24-hour HH:MM"
+              },
+              "action": {
+                "type": "string",
+                "enum": [
+                  "today",
+                  "standup",
+                  "shutdown",
+                  "wrapped",
+                  "create",
+                  "logTime",
+                  "board",
+                  "message"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "days": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "mon",
+                    "tue",
+                    "wed",
+                    "thu",
+                    "fri",
+                    "sat",
+                    "sun"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "ajwain.claude.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Claude Code CLI used to draft breakdowns. Empty: ~/.local/bin/claude or claude on PATH."
+        },
+        "ajwain.claude.model": {
+          "type": "string",
+          "default": "",
+          "description": "Model for drafting breakdowns, e.g. sonnet or opus. Empty: Claude Code's default."
+        },
+        "ajwain.branchTemplate": {
+          "type": "string",
+          "default": "{type}/{key}-{slug}",
+          "markdownDescription": "Branch names for **Start work**. Tokens: `{type}` (`feat` or `fix`), `{key}`, `{slug}`. Use `{key}-{slug}` for names like `OG-1080-formbuilder`."
+        },
+        "ajwain.commitPrefix": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "On a ticket's branch, pre-fill the commit message box with `OG-12: `."
+        },
+        "ajwain.timer.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Start a timer when you start work on a ticket (stop it from the status bar to log the time)."
+        },
+        "ajwain.reviewStatus": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Status a ticket moves to when you open its pull request. Empty: the first status whose name contains \"review\", else \"test\" or \"QA\"."
+        },
+        "ajwain.workspace": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The workspace Ajwain shows. Set it with **Ajwain: Switch workspace** or the board's workspace dropdown. Every window and the `ajwain` CLI follow it. Empty: your first workspace."
+        },
+        "ajwain.project": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The project Ajwain shows everywhere (board, sidebar, Today, My work, and the default for new tickets). Set it with the board's project dropdown or **Ajwain: Switch project**. Empty: all projects."
+        },
+        "ajwain.apiUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Your project management server's API address, e.g. `https://pm-api.example.com`. **Ajwain: Sign in** asks for it the first time; **Ajwain: Change server…** changes it. Changing it signs you out."
+        },
+        "ajwain.appUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The web app's address, used for **Open in browser** and for ticket links in pull requests. Empty: guessed from the API address (`api` becomes `app`: `pm-api.example.com` → `pm-app.example.com`)."
+        },
+        "ajwain.breaks.mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "activity",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Suggest stretch breaks from real activity, unless another stretch extension (jj-stretch) is installed",
+            "Suggest stretch breaks after a stretch of continuous activity",
+            "No automatic break suggestions (manual breaks and focus sessions still work)"
+          ],
+          "default": "auto",
+          "description": "When Ajwain suggests a stretch break."
+        },
+        "ajwain.breaks.every": {
+          "type": "number",
+          "default": 50,
+          "minimum": 15,
+          "description": "Minutes of continuous activity before a stretch break is suggested."
+        },
+        "ajwain.breaks.focusMinutes": {
+          "type": "number",
+          "default": 25,
+          "minimum": 5,
+          "description": "Length of a focus session (Pomodoro). A stretch break follows it."
+        },
+        "ajwain.fun.celebrations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Confetti and a cheer when you ship a pull request, finish a ticket or unlock a badge."
+        },
+        "ajwain.fun.lateNight": {
+          "type": "boolean",
+          "default": true,
+          "description": "A gentle nudge to wind down when you commit after 10pm (once a night)."
+        }
+      }
+    }
+  },
+  "files": [
+    "extension.js",
+    "pm.mjs",
+    "zoho.mjs",
+    "cli.mjs",
+    "media/*.js",
+    "media/*.mjs",
+    "media/*.css",
+    "media/*.svg",
+    "media/logo.png",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "docs/*.md"
+  ],
+  "icon": "media/logo.png",
+  "keywords": [
+    "project management",
+    "kanban",
+    "jira",
+    "sprint",
+    "tickets",
+    "time tracking",
+    "board"
+  ],
+  "categories": [
+    "Other"
+  ]
+}

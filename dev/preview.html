@@ -1,0 +1,178 @@
+<!doctype html>
+<!-- The board outside VS Code, on the mock API: `node test/mock-api.mjs`, then open
+     http://localhost:8765/dev/preview.html#view=board&project=OG
+     Hash options: view (today|board|list|sprints|mine), project (key or id; empty or absent = all projects),
+     open=KEY, plan, standup, light, since (pretend you last looked before a few changes), side (the sidebar's Home view).
+     This page plays the extension host (boardApi in extension.js): API requests go to the mock server with a real
+     login, host-only methods are emulated, and every message is JSON round-tripped like VS Code does.
+     window.__host = {calls: [{method, args}], errors: [...]} records host calls and webview errors for the e2e tests. -->
+<html><head><meta charset="utf-8">
+<title>Ajwain board preview</title>
+<style>
+:root{--vscode-editor-background:#121614;--vscode-foreground:#cccccc;--vscode-descriptionForeground:#9d9d9d;--vscode-panel-border:#2b2b2b;--vscode-editorWidget-background:#202522;--vscode-list-hoverBackground:#2a2d2e;--vscode-focusBorder:#0078d4;--vscode-button-background:#0078d4;--vscode-button-foreground:#fff;--vscode-button-hoverBackground:#026ec1;--vscode-input-background:#2a302c;--vscode-input-foreground:#ccc;--vscode-input-border:#3c3c3c;--vscode-dropdown-background:#2a302c;--vscode-dropdown-foreground:#e6e6e6;--vscode-dropdown-listBackground:#1d2220;--vscode-font-family:system-ui,sans-serif;--vscode-editor-font-family:monospace;--vscode-widget-shadow:#0000005c;--vscode-textLink-foreground:#4daafc;--vscode-errorForeground:#f85149;--vscode-sideBar-background:#181b19}
+:root.light{--vscode-sideBar-background:#f6f6f4;--vscode-editor-background:#fff;--vscode-foreground:#3b3b3b;--vscode-descriptionForeground:#717171;--vscode-panel-border:#e5e5e5;--vscode-editorWidget-background:#f8f8f8;--vscode-list-hoverBackground:#f2f2f2;--vscode-input-background:#fff;--vscode-input-foreground:#3b3b3b;--vscode-input-border:#cecece;--vscode-dropdown-background:#fff;--vscode-dropdown-foreground:#3b3b3b;--vscode-dropdown-listBackground:#fff;--vscode-widget-shadow:#00000029}
+</style>
+<style>
+/* VS Code's default webview stylesheet (pre/index.html), so the preview looks like the real panel. */
+@layer vscode-default {
+  body { overscroll-behavior-x: none; background-color: transparent; color: var(--vscode-editor-foreground, #ccc); font-family: var(--vscode-font-family); margin: 0; padding: 0 20px; }
+  img, video { max-width: 100%; max-height: 100%; }
+  a, a code { color: var(--vscode-textLink-foreground); }
+  a:focus, input:focus, select:focus, textarea:focus { outline: 1px solid -webkit-focus-ring-color; outline-offset: -1px; }
+  code { padding: 1px 3px; border-radius: 4px; }
+  kbd { border-style: solid; border-width: 1px; border-radius: 3px; padding: 1px 3px; }
+}
+</style>
+<link rel="stylesheet" href="../media/board.css"></head>
+<body>
+<script type="module">
+import { createClient, branchName, badges, ticketQuality, issueTarget } from '../pm.mjs';
+
+const H = new URLSearchParams(location.hash.slice(1));
+const light = H.has('light');
+document.body.className = light ? 'vscode-light' : 'vscode-dark';
+if (light) document.documentElement.classList.add('light');
+
+const rec = (window.__host = { calls: [], errors: [] });
+const json = (v) => (v === undefined ? null : JSON.parse(JSON.stringify(v))); // VS Code serializes messages as JSON
+const post = (msg) => window.postMessage(json(msg), '*');
+let tokens = null;
+const api = createClient({ load: () => tokens, save: (t) => { tokens = t; }, base: location.origin });
+
+// What the extension keeps: the scope (settings), board state, journal and timer (globalState), the one-shot open intent.
+const scope = { workspace: null, project: '' };
+const saved = {};
+// A few days of history so the streak, badges and Wrapped have something to show.
+const journal = [1, 2, 3, 4, 5].flatMap((d) => [
+  { t: Date.now() - d * 864e5, type: 'log', key: 'OG-1730', minutes: 30 * d },
+  ...(d % 2 ? [{ t: Date.now() - d * 864e5 + 3600e3, type: 'pr', key: `OG-173${d}` }] : []),
+]).sort((a, b) => a.t - b.t);
+let me, timer = null, tomorrow = null;
+const nineToday = new Date(); nineToday.setHours(9, 2, 0, 0);
+const ATT_RULES = { punchIn: 'ask', punchOut: 'auto', in: '09:00', out: '18:00', days: ['mon', 'tue', 'wed', 'thu', 'fri'] };
+let att = H.get('att') === 'off' ? { connected: false }
+  : H.get('att') === 'out' ? { connected: true, in: false, since: null, entries: [], rules: ATT_RULES }
+  : { connected: true, in: true, since: +nineToday, firstIn: +nineToday, entries: [{ in: +nineToday, out: null }], rules: ATT_RULES };
+const record = (type, data = {}) => { journal.push({ t: Date.now(), type, ...data }); later(() => post({ type: 'journal' })); };
+let intent = { view: H.get('view') || 'board', key: H.get('open'), plan: H.has('plan'), standup: H.has('standup') };
+const ready = (async () => {
+  me = await api.login('sam', 'secret');
+  scope.workspace = String((await api.workspaces())[0].id);
+  const p = H.get('project');
+  if (p) scope.project = String((await api.projects()).find((x) => x.key === p || String(x.id) === p)?.id ?? p);
+  if (H.has('since') && scope.project) {
+    // As if you last looked before OG-1740 was filed: since then OG-1733 moved, OG-1736 changed hands, OG-1730 was edited.
+    const issues = (await api.req(`/api/issues/?project=${scope.project}&page_size=250`)).results;
+    const snap = Object.fromEntries(issues.map((i) => [i.key, [String(i.status), String(i.assignee ?? ''), i.updated_at]]));
+    const by = (k) => issues.find((i) => i.key === k);
+    snap['OG-1733'][0] = String(by('OG-1730').status);
+    snap['OG-1736'][1] = String(me.id);
+    snap['OG-1730'][2] = '2026-01-01T00:00:00Z';
+    delete snap['OG-1740'];
+    saved[scope.workspace] = { snaps: { [scope.project]: { at: Date.parse(by('OG-1740').created_at) - 864e5, issues: snap } } };
+  }
+})();
+const fixtureCommits = async () => (await fetch('/_fixtures/commits')).json();
+const later = (fn) => setTimeout(fn, 10); // config change events arrive after the setScope reply
+
+const boardApi = {
+  async init() {
+    const it = intent;
+    intent = null;
+    return { me, workspace: scope.workspace, project: scope.project || null, saved: saved[scope.workspace] ?? {}, intent: it, startWorkIn: 'ask', timer };
+  },
+  save: (state) => { saved[scope.workspace] = state; },
+  setScope({ workspace, project }) {
+    if (workspace !== undefined) scope.workspace = String(workspace);
+    if (project !== undefined) scope.project = project ? String(project) : '';
+    later(() => post(workspace !== undefined ? { type: 'reinit' } : { type: 'scope', project: scope.project || null }));
+  },
+  async req(path, opts) {
+    if (!String(path).startsWith('/')) throw new Error('Bad path');
+    const d = await api.req(path, opts);
+    if (opts?.method === 'POST' && path === '/api/worklogs/') record('log', { minutes: opts.body?.minutes });
+    if (opts?.method === 'POST' && path === '/api/issues/') record('ticket', { key: d?.key, score: ticketQuality(opts.body ?? {}).score });
+    return d;
+  },
+  log: (msg) => { rec.errors.push(msg); console.warn('[board]', msg); },
+  workspaces: async () => ({ list: await api.workspaces(), current: scope.workspace }),
+  changed() {},
+  signIn() {},
+  startWork: (issue) => api.startIssue(issue, me.id), // the git part is the extension's: here only the ticket moves
+  copy() {},
+  copyBranch: (issue) => branchName(issue),
+  openExternal(url) { if (!/^https?:\/\//.test(url)) throw new Error('Only http(s) links can be opened'); },
+  openWeb() {},
+  openDoc() {},
+  todayCommits: fixtureCommits,
+  commits: async () => (await fixtureCommits()).map((c) => ({ ...c, time: c.time - 86400 })), // the standup's "yesterday"
+  timerToggle(issue) {
+    timer = timer?.key === issue.key ? null : { key: issue.key, id: issue.id, title: issue.title, start: Date.now() };
+    later(() => post({ type: 'timer', timer }));
+    return timer;
+  },
+  implementWithClaude() {},
+  openPR() {},
+  finish() {},
+  linkBranch: (branch, key) => key ?? 'OG-1736', // the extension asks which ticket; the preview always picks OG-1736
+  draftBreakdown: (issue) => ({
+    approach: `## Approach\nAdd a \`RetryQueue\` in \`webhooks/retry.py\` and call it from \`deliver()\` for ${issue.key}.\n\n**Risks:** duplicate deliveries.\n\n**Testing:** unit tests for the schedule.`,
+    subtasks: [
+      { title: 'Add RetryQueue with exponential backoff', description: '## What\nNew `webhooks/retry.py`.\n\n## Acceptance criteria\n- [ ] 1s, 4s, 16s', estimate_minutes: 180 },
+      { title: 'Call RetryQueue from deliver() on failure', description: '## What\nWire into `delivery.py`.\n\n## Acceptance criteria\n- [ ] Failures enqueue a retry', estimate_minutes: 90 },
+    ],
+  }),
+  record: (e) => record(e.type, e),
+  journal: () => ({ events: journal, unlocked: Object.fromEntries(badges(journal).filter((b) => b.unlockedAt).map((b) => [b.id, b.unlockedAt])) }),
+  tomorrow: () => tomorrow,
+  // Attendance (Zoho People): #att=in (default), out or off. Punching flips it, like the real host after Zoho confirms.
+  attendance: () => att,
+  punchByHand(dir) {
+    if (dir === 'in') att = { ...att, in: true, since: Date.now(), entries: [...att.entries, { in: Date.now(), out: null }] };
+    else att = { ...att, in: false, since: null, entries: att.entries.map((e) => (e.out ? e : { ...e, out: Date.now() })) };
+    later(() => post({ type: 'attendance', attendance: att }));
+    return att;
+  },
+  connectZoho() {},
+  setTomorrow: (t) => { tomorrow = t ? { ...t, date: new Date().toLocaleDateString('en-CA') } : null; },
+  attachmentUrl: (id, download) => api.attachmentUrl(id, download),
+  pickAndAttach: () => [], // the extension shows a file dialog; here the user cancels it
+  attachBytes: (issue, files) => Promise.all(files.map((f) => api.attach(issueTarget(issue), { name: f.name, type: f.type, bytes: Uint8Array.from(atob(f.data), (c) => c.charCodeAt(0)) }))),
+  saveImage: () => true,
+  takeBreak() {},
+  focus() {},
+  focusState: () => null,
+  addReminder() {},
+  configureReminders() {},
+  // The sidebar's extras (sideApi in extension.js).
+  openBoard() {},
+  create() {},
+  actions() {},
+};
+
+window.acquireVsCodeApi = () => ({
+  postMessage(msg) {
+    const { id, method, args } = json(msg);
+    if (method !== 'req') rec.calls.push({ method, args });
+    (async () => {
+      await ready;
+      if (!boardApi[method]) throw Object.assign(new Error(`boardApi has no method "${method}"`), { contract: true });
+      return boardApi[method](...args);
+    })().then(
+      (result) => post({ id, result: result ?? null }),
+      (e) => {
+        if (e.contract || method !== 'req') rec.errors.push(`host ${method}: ${e.message}`);
+        post({ id, error: e.message });
+      },
+    );
+  },
+  getState: () => json(saved.webview),
+  setState: (s) => { saved.webview = json(s); },
+});
+ready.catch((e) => rec.errors.push(`preview sign-in: ${e.message}`));
+if (H.has('side')) { // the sidebar's Home view instead of the board
+  document.head.insertAdjacentHTML('beforeend', '<link rel="stylesheet" href="../media/side.css">');
+  await import('../media/side.js');
+} else await import('../media/board.js');
+</script>
+</body></html>

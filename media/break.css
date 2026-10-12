@@ -1,0 +1,70 @@
+/* Break screen. Uses board.css tokens. Poses are custom properties registered with @property so the limbs
+   animate smoothly between moves and inside each move's loop. */
+@property --la { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+@property --ra { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+@property --torso { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+@property --head { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+@property --lift { syntax: '<length>'; inherits: true; initial-value: 0px; }
+@property --s { syntax: '<number>'; inherits: true; initial-value: 1; }
+
+body { overflow: auto; }
+.brk {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  padding: 28px 16px; text-align: center;
+}
+.brk-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.brk-tag {
+  display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border: 1px solid var(--rule-strong); border-left: 4px solid var(--brand);
+  background: var(--bg); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+}
+.stage { width: 240px; height: 340px; display: grid; place-items: center; border: 1px solid var(--rule); background: var(--bg); }
+.figure { width: 200px; height: 320px; transform: translateY(var(--lift)) scale(var(--s)); transition: --la .9s, --ra .9s, --torso .9s, --head .9s; }
+.mascot-body { width: 100%; height: 100%; overflow: visible; color: var(--fg); }
+.mascot-body .arm, .mascot-body .torso, .mascot-body .head { transform-box: view-box; }
+.mascot-body .arm-l { transform-origin: 77px 136px; transform: rotate(var(--la)); }
+.mascot-body .arm-r { transform-origin: 123px 136px; transform: rotate(var(--ra)); }
+.mascot-body .torso { transform-origin: 100px 214px; transform: rotate(var(--torso)); }
+.mascot-body .head { transform-origin: 100px 124px; transform: rotate(var(--head)); }
+.brk h1 { margin: 6px 0 0; font-size: 26px; font-weight: 700; letter-spacing: .01em; }
+.brk p { margin: 0; max-width: 460px; }
+
+/* the moves */
+.pose-reach { --la: 155deg; --ra: -155deg; animation: bob 3s ease-in-out infinite; }
+.pose-lean-left { --la: 150deg; --ra: -150deg; --torso: -15deg; }
+.pose-lean-right { --la: 150deg; --ra: -150deg; --torso: 15deg; }
+.pose-shrug { --la: 14deg; --ra: -14deg; animation: shrug 2.2s ease-in-out infinite; }
+.pose-neck { animation: neck 4s ease-in-out infinite; }
+.pose-wrists { --la: 82deg; --ra: -82deg; animation: wrists 1.4s ease-in-out infinite; }
+.pose-twist { --la: 40deg; --ra: -40deg; animation: twist 4s ease-in-out infinite; }
+.pose-eyes { --head: 6deg; }
+.pose-breathe { animation: breathe 8s ease-in-out infinite; }
+@keyframes bob { 50% { --lift: -8px; } }
+@keyframes shrug { 50% { --lift: -10px; --la: 24deg; --ra: -24deg; } }
+@keyframes neck { 0%, 100% { --head: -16deg; } 50% { --head: 16deg; } }
+@keyframes wrists { 50% { --la: 94deg; --ra: -94deg; } }
+@keyframes twist { 0%, 100% { --torso: -7deg; } 50% { --torso: 7deg; } }
+@keyframes breathe { 50% { --s: 1.06; --la: 10deg; --ra: -10deg; } }
+
+/* progress: one straight segment per move */
+.segments { display: flex; gap: 4px; width: min(420px, 90vw); }
+.segments span { flex: 1; height: 5px; background: var(--rule); overflow: hidden; }
+.segments i { display: block; height: 100%; width: 0; background: var(--brand); transition-property: width; transition-timing-function: linear; }
+.segments .done i { width: 100%; transition-duration: 0s !important; }
+.segments .now i { width: 100%; }
+.count { font-family: var(--mono); font-size: 34px; font-weight: 700; color: var(--brand); min-height: 42px; }
+.brk-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+
+/* the end: confetti cones */
+.done-screen .mascot { animation: pop .5s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } }
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.confetti i {
+  position: absolute; top: -20px; left: var(--x); width: 9px; height: 14px; background: var(--brand);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%); transform: rotate(var(--r)); animation: fall 2.6s var(--d) ease-in forwards;
+}
+.confetti i:nth-child(3n) { background: var(--todo); clip-path: none; height: 6px; }
+.confetti i:nth-child(4n) { background: var(--done); clip-path: none; width: 6px; }
+@keyframes fall { to { transform: translateY(110vh) rotate(calc(var(--r) + 540deg)); } }
+@media (prefers-reduced-motion: reduce) {
+  .figure, .confetti i, .done-screen .mascot { animation: none !important; transition: none !important; }
+}

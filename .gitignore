@@ -1,0 +1,8 @@
+# built packages
+*.vsix
+node_modules/
+.vscode-test/
+.DS_Store
+
+# The reference image the icon set was drawn after. It isn't used by the extension; commit it only if it's yours to share.
+icon_pack.png
